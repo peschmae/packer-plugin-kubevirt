@@ -4,6 +4,9 @@
   it will default to the same value as the Name. VMName is also used as
   the base for naming other temporary resources such as the ConfigMap.
 
+- `storage_class_name` (string) - StorageClassName is the name of the storage class to use for the root disk.
+  If not specified, the default storage class will be used.
+
 - `access_mode` (string) - AccessMode sets the Kubernetes access mode used for persistent storage.
   Valid values are `ReadWriteOnce` and `ReadWriteMany`.
   Defaults to `ReadWriteOnce`.
