@@ -15,6 +15,7 @@ import (
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 	"github.com/hashicorp/packer-plugin-sdk/template/config"
 	"github.com/hashicorp/packer-plugin-sdk/template/interpolate"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // Network represents a network type and a resource that should be connected to the VM.
@@ -102,18 +103,24 @@ type Config struct {
 	VolumeMode string `mapstructure:"volume_mode" required:"false"`
 	// InstanceType is the name of the InstanceType resource to use in the temporary VM.
 	// The value specified here will be persisted to the generated DataSource as an image
-	// default.
-	InstanceType string `mapstructure:"instance_type" required:"true"`
+	// default. Either instance_type or memory must be specified.
+	InstanceType string `mapstructure:"instance_type" required:"false"`
 	// InstanceTypeKind is the kind of the InstanceType resource to use in the temporary VM.
 	// Other supported value is "virtualmachineclusterinstancetype".
 	InstanceTypeKind string `mapstructure:"instance_type_kind" required:"false"`
 	// Preference is the name of the Preference resource to use in the temporary VM.
 	// The value specified here will be persisted to the generated DataSource as an image
 	// default.
-	Preference string `mapstructure:"preference" required:"true"`
+	Preference string `mapstructure:"preference" required:"false"`
 	// PreferenceKind is the kind of the Preference resource to use in the temporary VM.
 	// Other supported value is "virtualmachineclusterpreference".
 	PreferenceKind string `mapstructure:"preference_kind" required:"false"`
+	// Memory is the amount of memory to allocate to the VM (e.g. "4Gi").
+	// Required when instance_type is not set. Cannot be used together with instance_type.
+	Memory string `mapstructure:"memory" required:"false"`
+	// CPU is the number of CPU cores to allocate to the VM.
+	// Optional, defaults to 1 when instance_type is not set. Cannot be used together with instance_type.
+	CPU uint32 `mapstructure:"cpu" required:"false"`
 	// OperatingSystemType is the type of operating system to install.
 	// Supported values are "linux" and "windows". Default is "linux".
 	OperatingSystemType string `mapstructure:"os_type" required:"false"`
@@ -218,6 +225,21 @@ func (c *Config) Prepare(raws ...interface{}) ([]string, error) {
 	default:
 		err = fmt.Errorf("invalid VolumeMode provided, %s is not a supported option", c.VolumeMode)
 		errs = packersdk.MultiErrorAppend(errs, err)
+	}
+
+	if c.InstanceType == "" && c.Memory == "" {
+		errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("either instance_type or memory must be specified"))
+	}
+	if c.InstanceType != "" && c.Memory != "" {
+		errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("instance_type and memory are mutually exclusive"))
+	}
+	if c.InstanceType != "" && c.CPU != 0 {
+		errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("cpu cannot be specified when using instance_type"))
+	}
+	if c.Memory != "" {
+		if _, err := resource.ParseQuantity(c.Memory); err != nil {
+			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("invalid memory value %q: %w", c.Memory, err))
+		}
 	}
 
 	if len(errs.Errors) > 0 {

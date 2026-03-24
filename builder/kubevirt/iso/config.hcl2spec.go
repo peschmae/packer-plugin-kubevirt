@@ -86,10 +86,12 @@ type FlatConfig struct {
 	StorageClassName          *string           `mapstructure:"storage_class_name" required:"false" cty:"storage_class_name" hcl:"storage_class_name"`
 	AccessMode                *string           `mapstructure:"access_mode" required:"false" cty:"access_mode" hcl:"access_mode"`
 	VolumeMode                *string           `mapstructure:"volume_mode" required:"false" cty:"volume_mode" hcl:"volume_mode"`
-	InstanceType              *string           `mapstructure:"instance_type" required:"true" cty:"instance_type" hcl:"instance_type"`
+	InstanceType              *string           `mapstructure:"instance_type" required:"false" cty:"instance_type" hcl:"instance_type"`
 	InstanceTypeKind          *string           `mapstructure:"instance_type_kind" required:"false" cty:"instance_type_kind" hcl:"instance_type_kind"`
-	Preference                *string           `mapstructure:"preference" required:"true" cty:"preference" hcl:"preference"`
+	Preference                *string           `mapstructure:"preference" required:"false" cty:"preference" hcl:"preference"`
 	PreferenceKind            *string           `mapstructure:"preference_kind" required:"false" cty:"preference_kind" hcl:"preference_kind"`
+	Memory                    *string           `mapstructure:"memory" required:"false" cty:"memory" hcl:"memory"`
+	CPU                       *uint32           `mapstructure:"cpu" required:"false" cty:"cpu" hcl:"cpu"`
 	OperatingSystemType       *string           `mapstructure:"os_type" required:"false" cty:"os_type" hcl:"os_type"`
 	Networks                  []FlatNetwork     `mapstructure:"networks" required:"false" cty:"networks" hcl:"networks"`
 	BootCommand               []string          `mapstructure:"boot_command" required:"false" cty:"boot_command" hcl:"boot_command"`
@@ -196,6 +198,8 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"instance_type_kind":           &hcldec.AttrSpec{Name: "instance_type_kind", Type: cty.String, Required: false},
 		"preference":                   &hcldec.AttrSpec{Name: "preference", Type: cty.String, Required: false},
 		"preference_kind":              &hcldec.AttrSpec{Name: "preference_kind", Type: cty.String, Required: false},
+		"memory":                       &hcldec.AttrSpec{Name: "memory", Type: cty.String, Required: false},
+		"cpu":                          &hcldec.AttrSpec{Name: "cpu", Type: cty.Number, Required: false},
 		"os_type":                      &hcldec.AttrSpec{Name: "os_type", Type: cty.String, Required: false},
 		"networks":                     &hcldec.BlockListSpec{TypeName: "networks", Nested: hcldec.ObjectSpec((*FlatNetwork)(nil).HCL2Spec())},
 		"boot_command":                 &hcldec.AttrSpec{Name: "boot_command", Type: cty.List(cty.String), Required: false},

@@ -15,11 +15,25 @@
   Valid values are `Filesystem` and `Block`.
   Defaults to `Filesystem`.
 
+- `instance_type` (string) - InstanceType is the name of the InstanceType resource to use in the temporary VM.
+  The value specified here will be persisted to the generated DataSource as an image
+  default. Either instance_type or memory must be specified.
+
 - `instance_type_kind` (string) - InstanceTypeKind is the kind of the InstanceType resource to use in the temporary VM.
   Other supported value is "virtualmachineclusterinstancetype".
 
+- `preference` (string) - Preference is the name of the Preference resource to use in the temporary VM.
+  The value specified here will be persisted to the generated DataSource as an image
+  default.
+
 - `preference_kind` (string) - PreferenceKind is the kind of the Preference resource to use in the temporary VM.
   Other supported value is "virtualmachineclusterpreference".
+
+- `memory` (string) - Memory is the amount of memory to allocate to the VM (e.g. "4Gi").
+  Required when instance_type is not set. Cannot be used together with instance_type.
+
+- `cpu` (uint32) - CPU is the number of CPU cores to allocate to the VM.
+  Optional, defaults to 1 when instance_type is not set. Cannot be used together with instance_type.
 
 - `os_type` (string) - OperatingSystemType is the type of operating system to install.
   Supported values are "linux" and "windows". Default is "linux".

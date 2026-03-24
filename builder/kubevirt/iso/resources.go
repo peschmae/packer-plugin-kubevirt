@@ -37,18 +37,12 @@ func virtualMachine(
 	virtioContainer string,
 	accessMode string,
 	volumeMode string,
-	storageClassName string) *v1.VirtualMachine {
+	storageClassName string,
+	memory string,
+	cpu uint32) *v1.VirtualMachine {
 
 	vmNetworks := make([]v1.Network, len(networks))
 	vmInterfaces := make([]v1.Interface, len(networks))
-
-	if instanceTypeKind == "" {
-		instanceTypeKind = instancetypeapi.ClusterSingularResourceName
-	}
-
-	if preferenceKind == "" {
-		preferenceKind = instancetypeapi.ClusterSingularPreferenceResourceName
-	}
 
 	for i, n := range networks {
 		vmNetworks[i], vmInterfaces[i] = convertToNetwork(n)
@@ -66,14 +60,6 @@ func virtualMachine(
 		},
 		Spec: v1.VirtualMachineSpec{
 			RunStrategy: ptr.To(v1.RunStrategyAlways),
-			Instancetype: &v1.InstancetypeMatcher{
-				Kind: instanceTypeKind,
-				Name: instanceType,
-			},
-			Preference: &v1.PreferenceMatcher{
-				Kind: preferenceKind,
-				Name: preferenceName,
-			},
 			DataVolumeTemplates: []v1.DataVolumeTemplateSpec{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -108,6 +94,35 @@ func virtualMachine(
 				},
 			},
 		},
+	}
+
+	if instanceType != "" {
+		if instanceTypeKind == "" {
+			instanceTypeKind = instancetypeapi.ClusterSingularResourceName
+		}
+		vm.Spec.Instancetype = &v1.InstancetypeMatcher{
+			Kind: instanceTypeKind,
+			Name: instanceType,
+		}
+	} else {
+		vm.Spec.Template.Spec.Domain.Resources = v1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse(memory),
+			},
+		}
+		if cpu > 0 {
+			vm.Spec.Template.Spec.Domain.CPU = &v1.CPU{Cores: cpu}
+		}
+	}
+
+	if preferenceName != "" {
+		if preferenceKind == "" {
+			preferenceKind = instancetypeapi.ClusterSingularPreferenceResourceName
+		}
+		vm.Spec.Preference = &v1.PreferenceMatcher{
+			Kind: preferenceKind,
+			Name: preferenceName,
+		}
 	}
 
 	if storageClassName != "" {
@@ -155,17 +170,22 @@ func cloneVolume(volname, vmname, namespace, diskSize, accessMode, volumeMode, s
 }
 
 func sourceVolume(name, namespace, instanceType, preferenceName string) *cdiv1.DataSource {
+	labels := map[string]string{}
+	if instanceType != "" {
+		labels["instancetype.kubevirt.io/default-instancetype"] = instanceType
+	}
+	if preferenceName != "" {
+		labels["instancetype.kubevirt.io/default-preference"] = preferenceName
+	}
+
 	return &cdiv1.DataSource{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: cdiv1.CDIGroupVersionKind.GroupVersion().String(),
 			Kind:       "DataSource",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				"instancetype.kubevirt.io/default-instancetype": instanceType,
-				"instancetype.kubevirt.io/default-preference":   preferenceName,
-			},
+			Name:   name,
+			Labels: labels,
 		},
 		Spec: cdiv1.DataSourceSpec{
 			Source: cdiv1.DataSourceSource{
