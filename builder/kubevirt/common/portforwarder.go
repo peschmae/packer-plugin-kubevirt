@@ -80,6 +80,7 @@ func (p *PortForwarder) StartForwardingTCP(address *net.IPAddr, port ForwardedPo
 }
 
 func (p *PortForwarder) WaitForConnection(listener net.Listener, port ForwardedPort) {
+	defer listener.Close()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -90,6 +91,7 @@ func (p *PortForwarder) WaitForConnection(listener net.Listener, port ForwardedP
 		stream, err := p.Resource.PortForward(p.Name, port.Remote, port.Protocol)
 		if err != nil {
 			fmt.Printf("port forwarder: can't access %s/%s.%s: %v", p.Kind, p.Name, p.Namespace, err)
+			conn.Close()
 			continue
 		}
 		go p.HandleConnection(conn, stream.AsConn(), port)
